@@ -101,6 +101,12 @@ class SettingsViewController: UITableViewController {
                                  action: #selector(showStatsSectionChanged(_:))))
 
     model.addSection("Reviews")
+    model.add(TKMSwitchModelItem(style: .subtitle,
+                                 title: "Exact Match",
+                                 subtitle: "Requires typing in answers exactly correct",
+                                 on: Settings.exactMatch,
+                                 target: self,
+                                 action: #selector(exactMatchChanged(_:))))
     model.add(TKMBasicModelItem(style: .value1,
                                 title: "Review order",
                                 subtitle: reviewOrderValueText,
@@ -330,6 +336,10 @@ class SettingsViewController: UITableViewController {
     if let groupMeaningReadingIndexPath = groupMeaningReadingIndexPath {
       model?.setIndexPath(groupMeaningReadingIndexPath, isHidden: !switchView.isOn)
     }
+  }
+
+  @objc private func exactMatchChanged(_ switchView: UISwitch) {
+    Settings.exactMatch = switchView.isOn
   }
 
   @objc private func showAnswerImmediatelySwitchChanged(_ switchView: UISwitch) {
