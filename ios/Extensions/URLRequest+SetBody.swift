@@ -26,19 +26,46 @@ extension URLRequest {
   }
 
   mutating func setFormBody(method: String, queryItems: [URLQueryItem]) throws {
+    let percentEscapedQueryItems = queryItems.compactMap { $0.dataPercentEscaped }
+
     var components = URLComponents()
-    components.queryItems = queryItems
+    components.queryItems = percentEscapedQueryItems
 
     // By default URLComponents.percentEncodedQuery doesn't encode the '+' character. The WaniKani
     // server interprets this as a space instead, so make sure we remove that from the allowed set.
-    var characterSet = CharacterSet.urlQueryAllowed
-    characterSet.remove("+")
-    let query = components.query!.addingPercentEncoding(withAllowedCharacters: characterSet)!
-    let data = query.data(using: .utf8)!
+    let query = components.query?.replacingOccurrences(of: "+", with: "%2B")
+    let data = query!.data(using: .utf8)!
 
     setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
     setValue(String(data.count), forHTTPHeaderField: "Content-Length")
     httpBody = data
     httpMethod = method
+  }
+}
+
+fileprivate extension URLQueryItem {
+  var dataPercentEscaped: URLQueryItem? {
+    guard let percentEscapedParameter = name.dataPercentEscaped else { return nil }
+
+    return URLQueryItem(name: percentEscapedParameter,
+                        value: value?.dataPercentEscaped)
+  }
+}
+
+fileprivate extension String {
+  var dataPercentEscaped: String? {
+    addingPercentEncoding(withAllowedCharacters: .dataPercentEscapedCharacterSet)
+  }
+}
+
+fileprivate extension CharacterSet {
+    
+  /// Escape both & and + because some sensitive values may use them (e.g. passwords)
+  /// https://github.com/olivaresf/tsurukame/issues/3
+  static var dataPercentEscapedCharacterSet: CharacterSet {
+    var dataPercentEscapedCharacterSet = CharacterSet.urlQueryAllowed
+    dataPercentEscapedCharacterSet.remove("+")
+    dataPercentEscapedCharacterSet.remove("&")
+    return dataPercentEscapedCharacterSet
   }
 }
